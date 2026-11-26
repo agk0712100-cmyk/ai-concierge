@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaScale Digital — Live AI Concierge Demo</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .hero { max-width: 640px; text-align: center; }
+    .badge { display: inline-block; background: #1e293b; color: #38bdf8; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+    h1 { font-size: 2.4rem; line-height: 1.2; margin: 0 0 16px; }
+    p { color: #94a3b8; font-size: 1.05rem; line-height: 1.6; margin-bottom: 28px; }
+    .cta { background: #2563eb; color: #fff; border: none; padding: 14px 24px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+
+    /* Floating Chat Widget */
+    #ai-launcher { position: fixed; bottom: 24px; right: 24px; background: #2563eb; color: #fff; border: none; border-radius: 999px; padding: 14px 20px; font-weight: 600; font-size: 15px; cursor: pointer; box-shadow: 0 10px 25px rgba(37,99,235,0.4); z-index: 9999; }
+    #ai-box { display: none; position: fixed; bottom: 84px; right: 24px; width: 350px; max-width: calc(100vw - 32px); height: 460px; background: #ffffff; color: #0f172a; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.35); flex-direction: column; overflow: hidden; z-index: 9999; }
+    #ai-header { background: #1e293b; color: #fff; padding: 14px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    #ai-messages { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f8fafc; }
+    .msg { max-width: 82%; padding: 10px 13px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+    .bot { background: #e2e8f0; color: #0f172a; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .user { background: #2563eb; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    #ai-form { display: flex; border-top: 1px solid #e2e8f0; padding: 8px; background: #fff; }
+    #ai-input { flex: 1; border: none; outline: none; padding: 8px 10px; font-size: 14px; }
+    #ai-send { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <span class="badge">LIVE PROTOTYPE • INSTANT LEAD SYNC</span>
+    <h1>Never Lose a Website Visitor While You Sleep</h1>
+    <p>Ask the AI Concierge in the bottom-right corner about pricing, turnaround times, or book a quote—and watch hot leads sync straight into Google Sheets in real time.</p>
+    <button class="cta" onclick="toggleChat(true)">Test Live AI Concierge →</button>
+  </div>
+
+  <button id="ai-launcher" onclick="toggleChat()">💬 Ask AI Concierge</button>
+
+  <div id="ai-box">
+    <div id="ai-header">
+      <span>NovaScale AI Concierge</span>
+      <span style="cursor:pointer" onclick="toggleChat(false)">✕</span>
+    </div>
+    <div id="ai-messages">
+      <div class="msg bot">Hi! Ask me anything about our services, pricing, or timelines—or tell me what you're looking to build.</div>
+    </div>
+    <form id="ai-form" onsubmit="sendMsg(event)">
+      <input id="ai-input" type="text" placeholder="Ask about pricing or book a call..." required />
+      <button id="ai-send" type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const history = [];
+    const box = document.getElementById("ai-box");
+    const msgs = document.getElementById("ai-messages");
+    const input = document.getElementById("ai-input");
+
+    function toggleChat(forceOpen) {
+      if (typeof forceOpen === "boolean") box.style.display = forceOpen ? "flex" : "none";
+      else box.style.display = box.style.display === "flex" ? "none" : "flex";
+    }
+
+    function addBubble(text, cls) {
+      const div = document.createElement("div");
+      div.className = `msg ${cls}`;
+      div.textContent = text;
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+      return div;
+    }
+
+    async function sendMsg(e) {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      addBubble(text, "user");
+      const typing = addBubble("Typing...", "bot");
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, history })
+        });
+        const data = await res.json();
+        typing.textContent = data.reply;
+        history.push({ role: "user", text }, { role: "model", text: data.reply });
+      } catch (err) {
+        typing.textContent = "Connection error. Please try again.";
+      }
+    }
+  </script>
+</body>
+</html>
